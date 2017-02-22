@@ -8,6 +8,8 @@ import queue
 import os
 
 DOMAIN = "ulb.ac.be"
+BACKUP_DIR = "remote_session/deleted_content"
+SYNC_DIR = "remote_session/"
 
 
 class ScanThread(Thread):
@@ -47,11 +49,18 @@ def scan(host_list, credentials):
         host_list[buf[0]] = buf[1]
         thread.join()
 
+
+def get_valid_server(host_list):
+    for host in host_list:
+        if host_list[host] :
+            return host
+    return None
+
 if __name__ == '__main__':
-    print("Welcome to pyUlbTools")
     with open('hosts.json') as hosts_f:
         hostList = json.load(hosts_f)
     os.system("clear")
+    print("Welcome to pyUlbTools")
     credentials = init()
     choice = ""
     print("Building the network map, please wait...")
@@ -64,5 +73,8 @@ if __name__ == '__main__':
             for host in hostList:
                 if hostList[host]:
                     print(host + " is up")
+        elif choice == "sync":
+            print("Synchronizing...")
+            os.system("xterm -e 'rsync -arvh --delete --backup --backup-dir=" + BACKUP_DIR + " " + credentials[0] + "@" + get_valid_server(hostList) + "." + DOMAIN + ":/home/$USER/ " + SYNC_DIR + "'")
         elif choice == "help" or choice == "h":
-            print("uplist : list all server up\nhelp : open this help\nexit : close pyUlbTools")
+            print("uplist : list all server up\nsync : synchronize distant session\nhelp : open this help\nexit : close pyUlbTools")
