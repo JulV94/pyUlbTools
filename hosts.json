@@ -1,3 +1,14 @@
 {
-  "sca":["sca-xt01.ulb.ac.be", "sca-xt02.ulb.ac.be", "sca-xt03.ulb.ac.be", "sca-xt04.ulb.ac.be"]
+  "sca":["sca-xt01", "sca-xt02", "sca-xt03", "sca-xt04", "sca-xt05", "sca-xt06", "sca-xt07", "sca-xt08",
+    "sca-xt09", "sca-xt10", "sca-xt11", "sca-xt12", "sca-xt13", "sca-xt14", "sca-xt15", "sca-xt16",
+    "sca-xt17", "sca-xt18", "sca-xt19", "sca-xt20", "sca-xt21", "sca-xt22", "sca-xt23", "sca-xt24",
+    "sca-xt25", "sca-xt26", "sca-xt27", "sca-xt28", "sca-xt29", "sca-xt30"],
+  "romeo":["romeo1", "romeo2", "romeo3", "romeo4", "romeo5", "romeo6", "romeo7", "romeo8", "romeo9",
+    "romeo10", "romeo11", "romeo12", "romeo13", "romeo14", "romeo15", "romeo16", "romeo17", "romeo18",
+    "romeo19", "romeo20", "romeo21", "romeo22", "romeo23", "romeo24", "romeo25", "romeo26", "romeo27",
+    "romeo28", "romeo29", "romeo30"],
+  "roxane":["roxane1", "roxane2", "roxane3", "roxane4", "roxane5", "roxane6", "roxane7", "roxane8",
+    "roxane9", "roxane10", "roxane11", "roxane12", "roxane13", "roxane14", "roxane15", "roxane16",
+    "roxane17", "roxane18", "roxane19", "roxane20", "roxane21", "roxane22", "roxane23", "roxane24",
+    "roxane25", "roxane26", "roxane27", "roxane28", "roxane29", "roxane30"]
 }

@@ -4,6 +4,8 @@ from pexpect import pxssh
 from threading import Thread
 import getpass, json, queue
 
+DOMAIN = ".ulb.ac.be"
+
 class ScanThread(Thread):
 
     def __init__(self, hostname, credentials, queue):
@@ -33,7 +35,7 @@ def scan(host_list, credentials):
     q = queue.Queue()
     results = []
     for hostname in host_list:
-        thread = ScanThread(hostname,credentials, q)
+        thread = ScanThread(hostname+DOMAIN,credentials, q)
         thread_pool.append(thread)
         thread.start()
     for thread in thread_pool:
@@ -46,6 +48,15 @@ if __name__ == '__main__':
     with open('hosts.json') as hosts_f:
         hostList = json.load(hosts_f)
     print("Scanning...")
+    print("room sca...")
     results = scan(hostList["sca"], credentials)
+    for res in results:
+        print(res[0] + " up : " + str(res[1]))
+    print("room romeo...")
+    results = scan(hostList["romeo"], credentials)
+    for res in results:
+        print(res[0] + " up : " + str(res[1]))
+    print("room roxane...")
+    results = scan(hostList["roxane"], credentials)
     for res in results:
         print(res[0] + " up : " + str(res[1]))
