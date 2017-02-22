@@ -2,22 +2,27 @@
 
 from pexpect import pxssh
 from threading import Thread
-import getpass, json, queue
+import getpass
+import json
+import queue
+import os
 
-DOMAIN = ".ulb.ac.be"
+DOMAIN = "ulb.ac.be"
+
 
 class ScanThread(Thread):
 
-    def __init__(self, hostname, credentials, queue):
+    def __init__(self, hostname, domain, credentials, queue):
         Thread.__init__(self)
         self.hostname = hostname
+        self.domain = domain
         self.credentials = credentials
         self.queue = queue
 
     def run(self):
         s = pxssh.pxssh()
         try:
-            s.login(self.hostname, self.credentials[0], self.credentials[1], login_timeout=5)
+            s.login(self.hostname+"."+self.domain, self.credentials[0], self.credentials[1], login_timeout=5)
             s.logout()
             self.queue.put((self.hostname, True))
         except pxssh.ExceptionPxssh:
@@ -25,38 +30,39 @@ class ScanThread(Thread):
 
 
 def init():
-    print("Welcome to pyUlbTools")
     username = str(input("Username : "))
     password = getpass.getpass("Password : ")
     return username, password
 
+
 def scan(host_list, credentials):
     thread_pool = []
     q = queue.Queue()
-    results = []
     for hostname in host_list:
-        thread = ScanThread(hostname+DOMAIN,credentials, q)
+        thread = ScanThread(hostname, DOMAIN, credentials, q)
         thread_pool.append(thread)
         thread.start()
     for thread in thread_pool:
-        results.append(q.get())
+        buf = q.get()
+        host_list[buf[0]] = buf[1]
         thread.join()
-    return results
 
 if __name__ == '__main__':
-    credentials = init()
+    print("Welcome to pyUlbTools")
     with open('hosts.json') as hosts_f:
         hostList = json.load(hosts_f)
-    print("Scanning...")
-    print("room sca...")
-    results = scan(hostList["sca"], credentials)
-    for res in results:
-        print(res[0] + " up : " + str(res[1]))
-    print("room romeo...")
-    results = scan(hostList["romeo"], credentials)
-    for res in results:
-        print(res[0] + " up : " + str(res[1]))
-    print("room roxane...")
-    results = scan(hostList["roxane"], credentials)
-    for res in results:
-        print(res[0] + " up : " + str(res[1]))
+    os.system("clear")
+    credentials = init()
+    choice = ""
+    print("Building the network map, please wait...")
+    scan(hostList, credentials)
+    print("Ready!")
+    while choice != "exit":
+        choice = str(input("> "))
+        if choice == "uplist":
+            print("List of reachable machines")
+            for host in hostList:
+                if hostList[host]:
+                    print(host + " is up")
+        elif choice == "help" or choice == "h":
+            print("uplist : list all server up\nhelp : open this help\nexit : close pyUlbTools")
