@@ -64,6 +64,12 @@ def scan(host_list, domain, username, password):
         thread.join()
 
 
+def set_credentials():
+    username = str(input("Username : "))
+    password = getpass.getpass("Password : ")
+    return username, password
+
+
 def mass_cmd(host_list, domain, username, password, cmd):
     thread_pool = []
     q = queue.Queue()
@@ -107,8 +113,7 @@ if __name__ == '__main__':
     os.system("clear")
     print("Welcome to pyUlbTools")
     if config["username"] == "" or config["password"] == "":
-        config["username"] = str(input("Username : "))
-        config["password"] = getpass.getpass("Password : ")
+        config["username"], config["password"] = set_credentials()
     choice = ""
     print("Building the network map, please wait...")
     scan(hostList, config["domain"], config["username"], config["password"])
@@ -125,6 +130,12 @@ if __name__ == '__main__':
             for host in hostList:
                 if not(hostList[host]):
                     print(host + " is down")
+        elif choice == "user":
+            print("Currently using " + config["username"] + " user")
+        elif choice == "chguser":
+            print("Enter new username and password")
+            config["username"], config["password"] = set_credentials()
+            print("Successfully changed")
         elif choice[:7] == "connect":
             arguments = choice[7:].strip()
             if arguments != "":
@@ -147,4 +158,4 @@ if __name__ == '__main__':
             print("Synchronizing...")
             os.system("xterm -e 'rsync -arvh --delete --backup --backup-dir=" + config["backup_dir"] + config["username"] + " " + config["username"] + "@" + get_valid_server(hostList) + "." + config["domain"] + ":/home/$USER/ " + config["sync_dir"] + config["username"] + "'")
         elif choice == "help" or choice == "h":
-            print("uplist : list all server up\ndownlist : list all server down\nconnect : connect to a server\nmcmd : execute a command on every computer reachable\nsync : synchronize distant session\nhelp : open this help\nexit : close pyUlbTools")
+            print("uplist : list all server up\ndownlist : list all server down\nuser : show user currently used\nchguser : change user\nconnect : connect to a server\nmcmd : execute a command on every computer reachable\nsync : synchronize distant session\nhelp : open this help\nexit : close pyUlbTools")
