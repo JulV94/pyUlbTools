@@ -10,39 +10,71 @@ import os
 
 class ScanThread(Thread):
 
-    def __init__(self, hostname, domain, credentials, queue):
+    def __init__(self, hostname, domain, username, password, queue):
         Thread.__init__(self)
         self.hostname = hostname
         self.domain = domain
-        self.credentials = credentials
+        self.username = username
+        self.password = password
         self.queue = queue
 
     def run(self):
         s = pxssh.pxssh()
         try:
-            s.login(self.hostname+"."+self.domain, self.credentials[0], self.credentials[1], login_timeout=5)
+            s.login(self.hostname+"."+self.domain, self.username, self.password, login_timeout=5)
             s.logout()
             self.queue.put((self.hostname, True))
         except pxssh.ExceptionPxssh:
             self.queue.put((self.hostname, False))
 
 
-def init():
-    username = str(input("Username : "))
-    password = getpass.getpass("Password : ")
-    return username, password
+class CmdThread(Thread):
+
+    def __init__(self, hostname, domain, username, password, cmd, queue):
+        Thread.__init__(self)
+        self.hostname = hostname
+        self.domain = domain
+        self.username = username
+        self.password = password
+        self.cmd = cmd
+        self.queue = queue
+
+    def run(self):
+        s = pxssh.pxssh()
+        try:
+            s.login(self.hostname+"."+self.domain, self.username, self.password, login_timeout=5)
+            s.sendline(self.cmd)
+            s.prompt()
+            self.queue.put((self.hostname, s.before.decode()))
+            s.logout()
+        except pxssh.ExceptionPxssh:
+            self.queue.put((self.hostname, "Error while executing the command " + self.cmd + " on " + self.hostname))
 
 
-def scan(host_list, domain, credentials):
+def scan(host_list, domain, username, password):
     thread_pool = []
     q = queue.Queue()
     for hostname in host_list:
-        thread = ScanThread(hostname, domain, credentials, q)
+        thread = ScanThread(hostname, domain, username, password, q)
         thread_pool.append(thread)
         thread.start()
     for thread in thread_pool:
         buf = q.get()
         host_list[buf[0]] = buf[1]
+        thread.join()
+
+
+def mass_cmd(host_list, domain, username, password, cmd):
+    thread_pool = []
+    q = queue.Queue()
+    for hostname in host_list:
+        if host_list[hostname]:
+            thread = CmdThread(hostname, domain, username, password, cmd, q)
+            thread_pool.append(thread)
+            thread.start()
+    for thread in thread_pool:
+        buf = q.get()
+        print("-------------------------------------------------- " + buf[0] + " :\n" + buf[1])
         thread.join()
 
 
@@ -53,16 +85,16 @@ def get_valid_server(host_list):
     return None
 
 
-def connect(hostname, domain, credentials):
+def connect(hostname, domain, username, password):
     s = pxssh.pxssh()
     try:
-        s.login(hostname + "." + domain, credentials[0], credentials[1], login_timeout=5)
-        cmd = str(input(credentials[0] + "@" + hostname + " > "))
-        while(cmd != "exit"):
+        s.login(hostname + "." + domain, username, password, login_timeout=5)
+        cmd = str(input(username + "@" + hostname + " > "))
+        while cmd != "exit":
             s.sendline(cmd)
             s.prompt()
             print(s.before.decode())
-            cmd = str(input(credentials[0] + "@" + hostname + " > "))
+            cmd = str(input(username + "@" + hostname + " > "))
         s.logout()
     except pxssh.ExceptionPxssh:
         print("Unable to connect to " + hostname + "." + domain)
@@ -75,12 +107,11 @@ if __name__ == '__main__':
     os.system("clear")
     print("Welcome to pyUlbTools")
     if config["username"] == "" or config["password"] == "":
-        credentials = init()
-    else:
-        credentials = (config["username"], config["password"])
+        config["username"] = str(input("Username : "))
+        config["password"] = getpass.getpass("Password : ")
     choice = ""
     print("Building the network map, please wait...")
-    scan(hostList, config["domain"], credentials)
+    scan(hostList, config["domain"], config["username"], config["password"])
     print("Ready!")
     while choice != "exit":
         choice = str(input("pyUlbTools > "))
@@ -89,20 +120,31 @@ if __name__ == '__main__':
             for host in hostList:
                 if hostList[host]:
                     print(host + " is up")
+        elif choice == "downlist":
+            print("List of unreachable machines")
+            for host in hostList:
+                if not(hostList[host]):
+                    print(host + " is down")
         elif choice[:7] == "connect":
             arguments = choice[7:].strip()
             if arguments != "":
                 if arguments in hostList:
                     if hostList[arguments]:
-                        connect(arguments, config["domain"], credentials)
+                        connect(arguments, config["domain"], config["username"], config["password"])
                     else:
                         print(arguments + " server not reachable, uplist for more details")
                 else:
                     print(arguments + " not in the server list, uplist for more details")
             else:
-                connect(get_valid_server(hostList), config["domain"], credentials)
+                connect(get_valid_server(hostList), config["domain"], config["username"], config["password"])
+        elif choice[:4] == "mcmd":
+            cmd = choice[4:].strip()
+            if cmd != "":
+                mass_cmd(hostList, config["domain"], config["username"], config["password"], cmd)
+            else:
+                print("no command specified")
         elif choice == "sync":
             print("Synchronizing...")
-            os.system("xterm -e 'rsync -arvh --delete --backup --backup-dir=" + config["backup_dir"] + credentials[0] + " " + credentials[0] + "@" + get_valid_server(hostList) + "." + config["domain"] + ":/home/$USER/ " + config["sync_dir"] + credentials[0] + "'")
+            os.system("xterm -e 'rsync -arvh --delete --backup --backup-dir=" + config["backup_dir"] + config["username"] + " " + config["username"] + "@" + get_valid_server(hostList) + "." + config["domain"] + ":/home/$USER/ " + config["sync_dir"] + config["username"] + "'")
         elif choice == "help" or choice == "h":
-            print("uplist : list all server up\nconnect : connect to a server\nsync : synchronize distant session\nhelp : open this help\nexit : close pyUlbTools")
+            print("uplist : list all server up\ndownlist : list all server down\nconnect : connect to a server\nmcmd : execute a command on every computer reachable\nsync : synchronize distant session\nhelp : open this help\nexit : close pyUlbTools")
